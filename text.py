@@ -340,163 +340,163 @@ def main(args):
                                                   batch_first=True)
     if args.train:
         for epoch in range(args.epochs):
-        report_kl_loss = report_rec_loss = 0
-        report_num_words = report_num_sents = 0
-        for i in np.random.permutation(len(train_data_batch)):
-            batch_data = train_data_batch[i]
-            batch_size, sent_len = batch_data.size()
-            print(batch_size)
+            report_kl_loss = report_rec_loss = 0
+            report_num_words = report_num_sents = 0
+            for i in np.random.permutation(len(train_data_batch)):
+                batch_data = train_data_batch[i]
+                batch_size, sent_len = batch_data.size()
+                print(batch_size)
 
-            # not predict start symbol
-            report_num_words += (sent_len - 1) * batch_size
+                # not predict start symbol
+                report_num_words += (sent_len - 1) * batch_size
 
-            report_num_sents += batch_size
+                report_num_sents += batch_size
 
-            # kl_weight = 1.0
-            kl_weight = min(1.0, kl_weight + anneal_rate)
+                # kl_weight = 1.0
+                kl_weight = min(1.0, kl_weight + anneal_rate)
 
-            sub_iter = 1
-            batch_data_enc = batch_data
-            burn_num_words = 0
-            burn_pre_loss = 1e4
-            burn_cur_loss = 0
-            while aggressive_flag and sub_iter < 100:
+                sub_iter = 1
+                batch_data_enc = batch_data
+                burn_num_words = 0
+                burn_pre_loss = 1e4
+                burn_cur_loss = 0
+                while aggressive_flag and sub_iter < 100:
+
+                    enc_optimizer.zero_grad()
+                    dec_optimizer.zero_grad()
+
+                    burn_batch_size, burn_sents_len = batch_data_enc.size()
+                    burn_num_words += (burn_sents_len - 1) * burn_batch_size
+
+                    loss, loss_rc, loss_kl = vae.loss(batch_data_enc, kl_weight, nsamples=args.nsamples)
+
+                    burn_cur_loss += loss.sum().item()
+                    loss = loss.mean(dim=-1)
+
+                    loss.backward()
+                    torch.nn.utils.clip_grad_norm_(vae.parameters(), clip_grad)
+
+                    enc_optimizer.step()
+
+                    id_ = np.random.random_integers(0, len(train_data_batch) - 1)
+
+                    batch_data_enc = train_data_batch[id_]
+
+                    if sub_iter % 15 == 0:
+                        burn_cur_loss = burn_cur_loss / burn_num_words
+                        if burn_pre_loss - burn_cur_loss < 0:
+                            break
+                        burn_pre_loss = burn_cur_loss
+                        burn_cur_loss = burn_num_words = 0
+
+                    sub_iter += 1
+
+                    # if sub_iter >= 30:
+                    #     break
+
+                # print(sub_iter)
 
                 enc_optimizer.zero_grad()
                 dec_optimizer.zero_grad()
 
-                burn_batch_size, burn_sents_len = batch_data_enc.size()
-                burn_num_words += (burn_sents_len - 1) * burn_batch_size
 
-                loss, loss_rc, loss_kl = vae.loss(batch_data_enc, kl_weight, nsamples=args.nsamples)
+                loss, loss_rc, loss_kl = vae.loss(batch_data, kl_weight, nsamples=args.nsamples)
 
-                burn_cur_loss += loss.sum().item()
                 loss = loss.mean(dim=-1)
 
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(vae.parameters(), clip_grad)
 
-                enc_optimizer.step()
+                loss_rc = loss_rc.sum()
+                loss_kl = loss_kl.sum()
 
-                id_ = np.random.random_integers(0, len(train_data_batch) - 1)
+                if not aggressive_flag:
+                    enc_optimizer.step()
 
-                batch_data_enc = train_data_batch[id_]
+                dec_optimizer.step()
 
-                if sub_iter % 15 == 0:
-                    burn_cur_loss = burn_cur_loss / burn_num_words
-                    if burn_pre_loss - burn_cur_loss < 0:
-                        break
-                    burn_pre_loss = burn_cur_loss
-                    burn_cur_loss = burn_num_words = 0
+                report_rec_loss += loss_rc.item()
+                report_kl_loss += loss_kl.item()
 
-                sub_iter += 1
+                iter_ += 1
 
-                # if sub_iter >= 30:
-                #     break
+                if iter_ % 2 == 0:
+                    train_loss = (report_rec_loss  + report_kl_loss) / report_num_sents
+                    if aggressive_flag or epoch == 0:
+                        vae.eval()
+                        with torch.no_grad():
+                            mi = calc_mi(vae, val_data_batch)
+                            au, _ = calc_au(vae, val_data_batch)
+                        vae.train()
 
-            # print(sub_iter)
+                        print('epoch: %d, iter: %d, avg_loss: %.4f, kl: %.4f, mi: %.4f, recon: %.4f,' \
+                            'au %d, time elapsed %.2fs' %
+                            (epoch, iter_, train_loss, report_kl_loss / report_num_sents, mi,
+                            report_rec_loss / report_num_sents, au, time.time() - start))
+                    else:
+                        print('epoch: %d, iter: %d, avg_loss: %.4f, kl: %.4f, recon: %.4f,' \
+                            'time elapsed %.2fs' %
+                            (epoch, iter_, train_loss, report_kl_loss / report_num_sents,
+                            report_rec_loss / report_num_sents, time.time() - start))
 
-            enc_optimizer.zero_grad()
-            dec_optimizer.zero_grad()
+                    sys.stdout.flush()
+
+                    report_rec_loss = report_kl_loss = 0
+                    report_num_words = report_num_sents = 0
 
 
-            loss, loss_rc, loss_kl = vae.loss(batch_data, kl_weight, nsamples=args.nsamples)
-
-            loss = loss.mean(dim=-1)
-
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(vae.parameters(), clip_grad)
-
-            loss_rc = loss_rc.sum()
-            loss_kl = loss_kl.sum()
-
-            if not aggressive_flag:
-                enc_optimizer.step()
-
-            dec_optimizer.step()
-
-            report_rec_loss += loss_rc.item()
-            report_kl_loss += loss_kl.item()
-
-            iter_ += 1
-
-            if iter_ % 2 == 0:
-                train_loss = (report_rec_loss  + report_kl_loss) / report_num_sents
-                if aggressive_flag or epoch == 0:
+                if aggressive_flag and (iter_ % len(train_data_batch)) == 0:
                     vae.eval()
-                    with torch.no_grad():
-                        mi = calc_mi(vae, val_data_batch)
-                        au, _ = calc_au(vae, val_data_batch)
+                    cur_mi = calc_mi(vae, val_data_batch)
                     vae.train()
+                    print("pre mi:%.4f. cur mi:%.4f" % (pre_mi, cur_mi))
+                    if cur_mi - pre_mi < 0:
+                        aggressive_flag = False
+                        print("STOP BURNING")
 
-                    print('epoch: %d, iter: %d, avg_loss: %.4f, kl: %.4f, mi: %.4f, recon: %.4f,' \
-                           'au %d, time elapsed %.2fs' %
-                           (epoch, iter_, train_loss, report_kl_loss / report_num_sents, mi,
-                           report_rec_loss / report_num_sents, au, time.time() - start))
-                else:
-                    print('epoch: %d, iter: %d, avg_loss: %.4f, kl: %.4f, recon: %.4f,' \
-                           'time elapsed %.2fs' %
-                           (epoch, iter_, train_loss, report_kl_loss / report_num_sents,
-                           report_rec_loss / report_num_sents, time.time() - start))
+                    pre_mi = cur_mi
 
-                sys.stdout.flush()
+            print('kl weight %.4f' % kl_weight)
 
-                report_rec_loss = report_kl_loss = 0
-                report_num_words = report_num_sents = 0
-
-
-            if aggressive_flag and (iter_ % len(train_data_batch)) == 0:
-                vae.eval()
-                cur_mi = calc_mi(vae, val_data_batch)
-                vae.train()
-                print("pre mi:%.4f. cur mi:%.4f" % (pre_mi, cur_mi))
-                if cur_mi - pre_mi < 0:
-                    aggressive_flag = False
-                    print("STOP BURNING")
-
-                pre_mi = cur_mi
-
-        print('kl weight %.4f' % kl_weight)
-
-        vae.eval()
-        with torch.no_grad():
-            loss, nll, kl, ppl, mi = test(vae, val_data_batch, "VAL", args)
-            au, au_var = calc_au(vae, val_data_batch)
-            print("%d active units" % au)
-            # print(au_var)
-
-        if loss < best_loss:
-            print('update best loss')
-            best_loss = loss
-            best_nll = nll
-            best_kl = kl
-            best_ppl = ppl
-            torch.save(vae.state_dict(), args.save_path)
-
-        if loss > opt_dict["best_loss"]:
-            opt_dict["not_improved"] += 1
-            if opt_dict["not_improved"] >= decay_epoch and epoch >=15:
-                opt_dict["best_loss"] = loss
-                opt_dict["not_improved"] = 0
-                opt_dict["lr"] = opt_dict["lr"] * lr_decay
-                vae.load_state_dict(torch.load(args.save_path))
-                print('new lr: %f' % opt_dict["lr"])
-                decay_cnt += 1
-                enc_optimizer = optim.SGD(vae.encoder.parameters(), lr=opt_dict["lr"], momentum=args.momentum)
-                dec_optimizer = optim.SGD(vae.decoder.parameters(), lr=opt_dict["lr"], momentum=args.momentum)
-            
-        else:
-            opt_dict["not_improved"] = 0
-            opt_dict["best_loss"] = loss
-
-        if decay_cnt == max_decay:
-            break
-
-        if epoch % args.test_nepoch == 0:
+            vae.eval()
             with torch.no_grad():
-                loss, nll, kl, ppl, _ = test(vae, test_data_batch, "TEST", args)
+                loss, nll, kl, ppl, mi = test(vae, val_data_batch, "VAL", args)
+                au, au_var = calc_au(vae, val_data_batch)
+                print("%d active units" % au)
+                # print(au_var)
 
-        vae.train()
+            if loss < best_loss:
+                print('update best loss')
+                best_loss = loss
+                best_nll = nll
+                best_kl = kl
+                best_ppl = ppl
+                torch.save(vae.state_dict(), args.save_path)
+
+            if loss > opt_dict["best_loss"]:
+                opt_dict["not_improved"] += 1
+                if opt_dict["not_improved"] >= decay_epoch and epoch >=15:
+                    opt_dict["best_loss"] = loss
+                    opt_dict["not_improved"] = 0
+                    opt_dict["lr"] = opt_dict["lr"] * lr_decay
+                    vae.load_state_dict(torch.load(args.save_path))
+                    print('new lr: %f' % opt_dict["lr"])
+                    decay_cnt += 1
+                    enc_optimizer = optim.SGD(vae.encoder.parameters(), lr=opt_dict["lr"], momentum=args.momentum)
+                    dec_optimizer = optim.SGD(vae.decoder.parameters(), lr=opt_dict["lr"], momentum=args.momentum)
+                
+            else:
+                opt_dict["not_improved"] = 0
+                opt_dict["best_loss"] = loss
+
+            if decay_cnt == max_decay:
+                break
+
+            if epoch % args.test_nepoch == 0:
+                with torch.no_grad():
+                    loss, nll, kl, ppl, _ = test(vae, test_data_batch, "TEST", args)
+
+            vae.train()
 
     # compute importance weighted estimate of log p(x)
     vae.load_state_dict(torch.load(args.save_path))
