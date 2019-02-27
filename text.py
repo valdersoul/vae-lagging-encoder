@@ -24,6 +24,7 @@ def init_config():
 
     # model hyperparameters
     parser.add_argument('--dataset', type=str, required=True, help='dataset to use')
+    parser.add_argument('--train', type=int, default=1, help='if train')
 
     # optimization parameters
     parser.add_argument('--momentum', type=float, default=0, help='sgd momentum')
@@ -157,8 +158,10 @@ def calc_iwnll(model, test_data_batch, args, ns=100):
 def calc_mi(model, test_data_batch):
     mi = 0
     num_examples = 0
+    print(len(test_data_batch))
     for batch_data in test_data_batch:
         batch_size = batch_data.size(0)
+        print(batch_size)
         num_examples += batch_size
         mutual_info = model.calc_mi_q(batch_data)
         mi += mutual_info * batch_size
@@ -335,12 +338,14 @@ def main(args):
     test_data_batch = test_data.create_data_batch(batch_size=args.batch_size,
                                                   device=device,
                                                   batch_first=True)
-    for epoch in range(args.epochs):
+    if args.train:
+        for epoch in range(args.epochs):
         report_kl_loss = report_rec_loss = 0
         report_num_words = report_num_sents = 0
         for i in np.random.permutation(len(train_data_batch)):
             batch_data = train_data_batch[i]
             batch_size, sent_len = batch_data.size()
+            print(batch_size)
 
             # not predict start symbol
             report_num_words += (sent_len - 1) * batch_size
@@ -413,7 +418,9 @@ def main(args):
             report_rec_loss += loss_rc.item()
             report_kl_loss += loss_kl.item()
 
-            if iter_ % log_niter == 0:
+            iter_ += 1
+
+            if iter_ % 2 == 0:
                 train_loss = (report_rec_loss  + report_kl_loss) / report_num_sents
                 if aggressive_flag or epoch == 0:
                     vae.eval()
@@ -437,7 +444,6 @@ def main(args):
                 report_rec_loss = report_kl_loss = 0
                 report_num_words = report_num_sents = 0
 
-            iter_ += 1
 
             if aggressive_flag and (iter_ % len(train_data_batch)) == 0:
                 vae.eval()
