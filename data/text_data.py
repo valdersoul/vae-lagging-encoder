@@ -83,7 +83,7 @@ class MonoTextData(object):
             vocab['</s>'] = 2
             vocab['<unk>'] = 3
 
-        with open(fname) as fin:
+        with open(fname, encode='utf-8') as fin:
             for line in fin:
                 if label:
                     split_line = line.split('\t')
