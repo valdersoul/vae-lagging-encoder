@@ -30,8 +30,8 @@ class LSTMEncoder(GaussianEncoderBase):
 
         self.mu_bn = nn.BatchNorm1d(args.nz)
         self.logvar_bn = nn.BatchNorm1d(args.nz)
-        self.mu_bn.rquires_grad = False
-        self.logvar_bn.rquires_grad = False
+        self.mu_bn.weight.requires_grad = False
+        self.logvar_bn.weight.requires_grad = False
 
         self.reset_parameters(model_init, emb_init)
 
