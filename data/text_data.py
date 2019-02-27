@@ -1,6 +1,7 @@
 import random
 import torch
 import numpy as np
+from codecs import open
 
 from collections import defaultdict
 
@@ -83,7 +84,7 @@ class MonoTextData(object):
             vocab['</s>'] = 2
             vocab['<unk>'] = 3
 
-        with open(fname, encode='utf-8') as fin:
+        with open(fname) as fin:
             for line in fin:
                 if label:
                     split_line = line.split('\t')
