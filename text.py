@@ -363,7 +363,14 @@ def main(args):
                     enc_optimizer.zero_grad()
                     dec_optimizer.zero_grad()
 
+                    id_ = np.random.random_integers(0, len(train_data_batch) - 1)
+
+                    batch_data_enc = train_data_batch[id_]
+
                     burn_batch_size, burn_sents_len = batch_data_enc.size()
+                    if burn_batch_size == 1:
+                        continue
+                        
                     burn_num_words += (burn_sents_len - 1) * burn_batch_size
 
                     loss, loss_rc, loss_kl = vae.loss(batch_data_enc, kl_weight, nsamples=args.nsamples)
@@ -375,10 +382,6 @@ def main(args):
                     torch.nn.utils.clip_grad_norm_(vae.parameters(), clip_grad)
 
                     enc_optimizer.step()
-
-                    id_ = np.random.random_integers(0, len(train_data_batch) - 1)
-
-                    batch_data_enc = train_data_batch[id_]
 
                     if sub_iter % 15 == 0:
                         burn_cur_loss = burn_cur_loss / burn_num_words
