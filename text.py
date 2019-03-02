@@ -158,10 +158,8 @@ def calc_iwnll(model, test_data_batch, args, ns=100):
 def calc_mi(model, test_data_batch):
     mi = 0
     num_examples = 0
-    print(len(test_data_batch))
     for batch_data in test_data_batch:
         batch_size = batch_data.size(0)
-        print(batch_size)
         num_examples += batch_size
         mutual_info = model.calc_mi_q(batch_data)
         mi += mutual_info * batch_size
@@ -345,8 +343,8 @@ def main(args):
             for i in np.random.permutation(len(train_data_batch)):
                 batch_data = train_data_batch[i]
                 batch_size, sent_len = batch_data.size()
-                print(batch_size)
-
+                if batch_size == 1:
+                    continue
                 # not predict start symbol
                 report_num_words += (sent_len - 1) * batch_size
 
@@ -420,7 +418,7 @@ def main(args):
 
                 iter_ += 1
 
-                if iter_ % 2 == 0:
+                if iter_ % 10 == 0:
                     train_loss = (report_rec_loss  + report_kl_loss) / report_num_sents
                     if aggressive_flag or epoch == 0:
                         vae.eval()
