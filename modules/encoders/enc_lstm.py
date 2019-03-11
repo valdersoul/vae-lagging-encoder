@@ -25,8 +25,8 @@ class LSTMEncoder(GaussianEncoderBase):
 
         # dimension transformation to z (mean and logvar)
         #self.linear = nn.Linear(args.enc_nh, 2 * args.nz, bias=False)
-        self.mu_fc = nn.Linear(args.enc_nh, args.nz)
-        self.logvar_fc = nn.Linear(args.enc_nh, args.nz)
+        self.mu_fc = nn.Sequential(nn.Linear(args.enc_nh, 100), nn.ReLU(), nn.Linear(100, args.nz))
+        self.logvar_fc = nn.Sequential(nn.Linear(args.enc_nh, 100), nn.ReLU(), nn.Linear(100, args.nz))
 
         self.mu_bn = nn.BatchNorm1d(args.nz)
         self.logvar_bn = nn.BatchNorm1d(args.nz)
@@ -46,11 +46,11 @@ class LSTMEncoder(GaussianEncoderBase):
 
         # model_init(self.linear.weight)
         # emb_init(self.embed.weight)
-        for param in self.parameters():
-            model_init(param)
-        emb_init(self.embed.weight)
-        self.mu_bn.weight.fill_(1)
-        self.logvar_bn.weight.fill_(1)
+        #for param in self.parameters():
+        #    model_init(param)
+        #emb_init(self.embed.weight)
+        self.mu_bn.weight.fill_(0.35)
+        self.logvar_bn.weight.fill_(0.35)
 
 
     def forward(self, input):
@@ -68,12 +68,12 @@ class LSTMEncoder(GaussianEncoderBase):
 
         _, (last_state, last_cell) = self.lstm(word_embed)
 
-        mean = self.mu_bn(self.mu_fc(last_state))
-        logvar = self.logvar_bn(self.logvar_fc(last_state))
+        mean = self.mu_bn(self.mu_fc(last_state.squeeze(0)))
+        logvar = self.logvar_bn(self.logvar_fc(last_state.squeeze(0)))
 
         # mean, logvar = self.linear(last_state).chunk(2, -1)
 
-        return mean.squeeze(0), logvar.squeeze(0)
+        return mean, logvar
 
     # def eval_inference_mode(self, x):
     #     """compute the mode points in the inference distribution
