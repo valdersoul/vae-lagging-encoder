@@ -438,6 +438,8 @@ def main(args):
                            'time elapsed %.2fs' %
                            (epoch, iter_, train_loss, report_kl_loss / report_num_sents, mi,
                            report_rec_loss / report_num_sents, time.time() - start))
+                    print(vae.encoder.mu_bn.running_mean)
+                    print(vae.encoder.logvar_bn.running_mean)
                 else:
                     print('epoch: %d, iter: %d, avg_loss: %.4f, kl: %.4f, recon: %.4f,' \
                            'time elapsed %.2fs' %
