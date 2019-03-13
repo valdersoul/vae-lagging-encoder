@@ -239,7 +239,7 @@ class VAE(nn.Module):
 
         mean, logvar = self.encoder.forward(x)
 
-        return mean
+        return mean, logvar
 
 
 

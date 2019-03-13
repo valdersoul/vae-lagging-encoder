@@ -201,9 +201,9 @@ def plot_multiple(model, plot_data, grid_z,
         # [batch, 1]
         posterior_mean = model.calc_model_posterior_mean(data, grid_z)
 
-        infer_mean = model.calc_infer_mean(data)
+        infer_mean, infer_log_var = model.calc_infer_mean(data)
 
-        infer_posterior_mean.append(torch.cat([posterior_mean, infer_mean], 1))
+        infer_posterior_mean.append(torch.cat([posterior_mean, infer_mean, infer_log_var], 1))
 
     # [*, 2]
     infer_posterior_mean = torch.cat(infer_posterior_mean, 0)
@@ -212,6 +212,7 @@ def plot_multiple(model, plot_data, grid_z,
 
     save_data = {'posterior': infer_posterior_mean[:,0].cpu().numpy(),
                  'inference': infer_posterior_mean[:,1].cpu().numpy(),
+                 'logvar': infer_posterior_mean[:,2].cpu().numpy(),
                  'kl': report_loss_kl / report_num_sample,
                  'mi': report_mi / report_num_sample
                  }
