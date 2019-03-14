@@ -25,13 +25,14 @@ class LSTMEncoder(GaussianEncoderBase):
 
         # dimension transformation to z (mean and logvar)
         #self.linear = nn.Linear(args.enc_nh, 2 * args.nz, bias=False)
-        self.mu_fc = nn.Sequential(nn.Linear(args.enc_nh, 100), nn.ReLU(), nn.Linear(100, args.nz))
-        self.logvar_fc = nn.Sequential(nn.Linear(args.enc_nh, 100), nn.ReLU(), nn.Linear(100, args.nz))
-
+        #self.mu_fc = nn.Sequential(nn.Linear(args.enc_nh, 100), nn.ReLU(), nn.Linear(100, args.nz))
+        #self.logvar_fc = nn.Sequential(nn.Linear(args.enc_nh, 100), nn.ReLU(), nn.Linear(100, args.nz))
+        self.mu_fc = nn.Linear(args.enc_nh, args.nz)
+        self.logvar_fc = nn.Linear(args.enc_nh, args.nz)
         self.mu_bn = nn.BatchNorm1d(args.nz)
-        self.logvar_bn = nn.BatchNorm1d(args.nz)
+        #self.logvar_bn = nn.BatchNorm1d(args.nz)
         self.mu_bn.weight.requires_grad = False
-        self.logvar_bn.weight.requires_grad = False
+        #self.logvar_bn.weight.requires_grad = False
 
         self.reset_parameters(model_init, emb_init)
 
@@ -48,9 +49,9 @@ class LSTMEncoder(GaussianEncoderBase):
         # emb_init(self.embed.weight)
         #for param in self.parameters():
         #    model_init(param)
-        #emb_init(self.embed.weight)
-        self.mu_bn.weight.fill_(0.35)
-        self.logvar_bn.weight.fill_(0.35)
+        emb_init(self.embed.weight)
+        self.mu_bn.weight.fill_(0.4)
+        #self.logvar_bn.weight.fill_(1)
 
 
     def forward(self, input):
@@ -69,9 +70,9 @@ class LSTMEncoder(GaussianEncoderBase):
         _, (last_state, last_cell) = self.lstm(word_embed)
 
         mean = self.mu_bn(self.mu_fc(last_state.squeeze(0)))
-        logvar = self.logvar_bn(self.logvar_fc(last_state.squeeze(0)))
+        logvar = self.logvar_fc(last_state.squeeze(0))
 
-        # mean, logvar = self.linear(last_state).chunk(2, -1)
+        #mean, logvar = self.linear(last_state.squeeze(0)).chunk(2, -1)
 
         return mean, logvar
 
