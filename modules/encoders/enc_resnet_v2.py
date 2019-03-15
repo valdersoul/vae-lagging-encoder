@@ -103,7 +103,12 @@ class ResNetEncoderV2(GaussianEncoderBase):
             nn.BatchNorm2d(hidden_units),
             nn.ELU(),
         )
-        self.linear = nn.Linear(hidden_units, 2 * self.nz)
+        #self.linear = nn.Linear(hidden_units, 2 * self.nz)
+        self.mu_fc = nn.Linear(hidden_units, self.nz)
+        self.logvar_fc = nn.Linear(hidden_units, self.nz)
+        self.mu_bn = nn.BatchNorm1d(self.nz)
+        #self.logvar_bn = nn.BatchNorm1d(args
+        self.mu_bn.weight.requires_grad = False
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -114,13 +119,19 @@ class ResNetEncoderV2(GaussianEncoderBase):
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
-        nn.init.xavier_uniform_(self.linear.weight)
-        nn.init.constant_(self.linear.bias, 0.0)
+        nn.init.xavier_uniform_(self.mu_fc.weight)
+        nn.init.constant_(self.mu_fc.bias, 0.0)
+        nn.init.xavier_uniform_(self.logvar_fc.weight)
+        nn.init.constant_(self.logvar_fc.bias, 0.0)
+        self.mu_bn.weight.fill_(0.45)
 
     def forward(self, input):
         if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
         else:
             output = self.main(input)
-        output = self.linear(output.view(output.size()[:2]))
-        return output.chunk(2, 1)
+        mean = self.mu_bn(self.mu_fc(output.view(output.size()[:2])))
+        logvar = self.logvar_fc(output.view(output.size()[:2]))
+        #output = self.linear(output.view(output.size()[:2]))
+        #return output.chunk(2, 1)
+        return mean, logvar

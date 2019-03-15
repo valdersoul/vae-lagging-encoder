@@ -421,7 +421,7 @@ def main(args):
 
                 iter_ += 1
 
-                if iter_ % 10 == 0:
+                if iter_ % log_niter == 0:
                     train_loss = (report_rec_loss  + report_kl_loss) / report_num_sents
                     if aggressive_flag or epoch == 0:
                         vae.eval()
