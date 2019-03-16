@@ -97,7 +97,7 @@ def test(model, test_loader, mode, args):
         report_num_examples += batch_size
 
 
-        loss, loss_rc, loss_kl = model.loss(batch_data, 1.0, nsamples=args.nsamples)
+        loss, loss_rc, loss_kl, loss_mul2 = model.loss(batch_data, 1.0, nsamples=args.nsamples)
 
         assert(not loss_rc.requires_grad)
 

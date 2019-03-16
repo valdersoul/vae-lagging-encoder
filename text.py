@@ -410,7 +410,6 @@ def main(args):
 
                 loss_rc = loss_rc.sum()
                 loss_kl = loss_kl.sum()
-                loss_mul2 = loss_mul2.sum()
 
                 if not aggressive_flag:
                     enc_optimizer.step()
