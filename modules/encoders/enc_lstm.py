@@ -33,7 +33,6 @@ class LSTMEncoder(GaussianEncoderBase):
         self.logvar_bn = nn.BatchNorm1d(args.nz)
         self.mu_bn.weight.requires_grad = False
         self.logvar_bn.weight.requires_grad = False
-
         self.reset_parameters(model_init, emb_init)
 
     def reset_parameters(self, model_init, emb_init):
@@ -50,7 +49,7 @@ class LSTMEncoder(GaussianEncoderBase):
         #for param in self.parameters():
         #    model_init(param)
         #emb_init(self.embed.weight)
-        self.mu_bn.weight.fill_(0.5)
+        self.mu_bn.weight.fill_(1)
         #self.logvar_bn.weight.fill_(0.5)
 
 
