@@ -59,13 +59,13 @@ class VAE(nn.Module):
             Tensor3: KL loss shape [batch]
         """
         
-        z, KL = self.encode(x, nsamples)
+        z, KL, mu_l2 = self.encode(x, nsamples)
 
         # (batch)
         reconstruct_err = self.decoder.reconstruct_error(x, z).mean(dim=1)
 
 
-        return reconstruct_err + kl_weight * KL, reconstruct_err, KL
+        return reconstruct_err + kl_weight * KL + mu_l2, reconstruct_err, KL, mu_l2
 
     def nll_iw(self, x, nsamples, ns=100):
         """compute the importance weighting estimate of the log-likelihood
@@ -237,7 +237,7 @@ class VAE(nn.Module):
             Tensor1: the mean of inference distribution, with shape [batch, nz]
         """
 
-        mean, logvar = self.encoder.forward(x)
+        mean, logvar, _, _ = self.encoder.forward(x)
 
         return mean, logvar
 

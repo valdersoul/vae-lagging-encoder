@@ -133,8 +133,10 @@ class ResNetEncoderV2(GaussianEncoderBase):
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
         else:
             output = self.main(input)
-        mean = self.mu_bn(self.mu_fc(output.view(output.size()[:2])))
-        logvar = self.logvar_bn(self.logvar_fc(output.view(output.size()[:2])))
+        mean_logit = self.mu_fc(output.view(output.size()[:2]))
+        mean = self.mu_bn(mean_logit)
+        logvar_logit = self.logvar_fc(output.view(output.size()[:2]))
+        logvar = self.logvar_bn(logvar_logit)
         #output = self.linear(output.view(output.size()[:2]))
         #return output.chunk(2, 1)
-        return mean, logvar
+        return mean, logvar, mean_logit, logvar_logit

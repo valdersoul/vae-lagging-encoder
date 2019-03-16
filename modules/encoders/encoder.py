@@ -47,14 +47,14 @@ class GaussianEncoderBase(nn.Module):
         """
 
         # (batch_size, nz)
-        mu, logvar = self.forward(input)
+        mu, logvar, mu_logit, logvar_logit = self.forward(input)
 
         # (batch, nsamples, nz)
         z = self.reparameterize(mu, logvar, nsamples)
 
         KL = 0.5 * (mu.pow(2) + logvar.exp() - logvar - 1).sum(dim=1)
 
-        return z, KL
+        return z, KL, mu_logit.pow(2).sum(dim=1)
 
     def reparameterize(self, mu, logvar, nsamples=1):
         """sample from posterior Gaussian family

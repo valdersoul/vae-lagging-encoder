@@ -401,7 +401,7 @@ def main(args):
                 dec_optimizer.zero_grad()
 
 
-                loss, loss_rc, loss_kl = vae.loss(batch_data, kl_weight, nsamples=args.nsamples)
+                loss, loss_rc, loss_kl, loss_mul2 = vae.loss(batch_data, kl_weight, nsamples=args.nsamples)
 
                 loss = loss.mean(dim=-1)
 
@@ -410,6 +410,7 @@ def main(args):
 
                 loss_rc = loss_rc.sum()
                 loss_kl = loss_kl.sum()
+                loss_mul2 = loss_mul2.sum()
 
                 if not aggressive_flag:
                     enc_optimizer.step()
