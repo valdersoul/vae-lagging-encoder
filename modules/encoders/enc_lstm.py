@@ -5,9 +5,10 @@ import torch.nn as nn
 
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from .encoder import GaussianEncoderBase
+from .encoder_vmf import VMFEncoderBase
 from ..utils import log_sum_exp
 
-class LSTMEncoder(GaussianEncoderBase):
+class LSTMEncoder(VMFEncoderBase):
     """Gaussian LSTM Encoder with constant-length input"""
     def __init__(self, args, vocab_size, model_init, emb_init):
         super(LSTMEncoder, self).__init__()
