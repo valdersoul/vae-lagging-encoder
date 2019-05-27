@@ -122,7 +122,7 @@ def test(model, test_data_batch, mode, args):
         report_num_sents += batch_size
 
 
-        loss, loss_rc, loss_kl = model.loss(batch_data, 1.0, nsamples=args.nsamples)
+        loss, loss_rc, loss_kl,_ = model.loss(batch_data, 1.0, nsamples=args.nsamples)
 
         assert(not loss_rc.requires_grad)
 
@@ -314,7 +314,7 @@ def main(args):
         infer_mean = []
 
         posterior_mean.append(vae.calc_model_posterior_mean(plot_data[0], grid_z))
-        infer_mean.append(vae.calc_infer_mean(plot_data[0]))
+        infer_mean.append(vae.calc_infer_mean(plot_data[0])[0])
 
     train_data_batch = train_data.create_data_batch(batch_size=args.batch_size,
                                                     device=device,
@@ -392,7 +392,7 @@ def main(args):
                 vae.eval()
                 with torch.no_grad():
                     posterior_mean.append(posterior_mean[-1])
-                    infer_mean.append(vae.calc_infer_mean(plot_data[0]))
+                    infer_mean.append(vae.calc_infer_mean(plot_data[0])[0])
                 vae.train()
 
 
@@ -400,7 +400,7 @@ def main(args):
             dec_optimizer.zero_grad()
 
 
-            loss, loss_rc, loss_kl = vae.loss(batch_data, kl_weight, nsamples=args.nsamples)
+            loss, loss_rc, loss_kl,_ = vae.loss(batch_data, kl_weight, nsamples=args.nsamples)
 
             loss = loss.mean(dim=-1)
 
@@ -422,7 +422,7 @@ def main(args):
                     if aggressive_flag:
                         infer_mean.append(infer_mean[-1])
                     else:
-                        infer_mean.append(vae.calc_infer_mean(plot_data[0]))
+                        infer_mean.append(vae.calc_infer_mean(plot_data[0])[0])
                 vae.train()
 
             report_rec_loss += loss_rc.item()
@@ -455,7 +455,7 @@ def main(args):
                 with torch.no_grad():
                     if args.plot_mode == 'single' and iter_ != 0:
                         plot_fn(infer_mean, posterior_mean, args)
-                        return
+                        #return
                     elif args.plot_mode == "multiple":
                         plot_fn(vae, plot_data, grid_z,
                                 iter_, args)

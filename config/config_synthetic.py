@@ -9,7 +9,7 @@ params={
     'dec_dropout_in': 0.5,
     'dec_dropout_out': 0.5,
     'epochs': 50,
-    'batch_size': 16,
+    'batch_size': 300,
     'test_nepoch': 1,
     'train_data': 'datasets/synthetic_data/synthetic_train.txt',
     'val_data': 'datasets/synthetic_data/synthetic_test.txt',

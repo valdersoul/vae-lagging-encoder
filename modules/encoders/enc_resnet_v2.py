@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from .encoder import GaussianEncoderBase
-
+from .encoder_vmf import VMFEncoderBase
 """
 A better ResNet baseline
 """
@@ -125,7 +125,7 @@ class ResNetEncoderV2(GaussianEncoderBase):
         #nn.init.constant_(self.mu_fc.bias, 0.0)
         #nn.init.xavier_uniform_(self.logvar_fc.weight)
         #nn.init.constant_(self.logvar_fc.bias, 0.0)
-        self.mu_bn.weight.fill_(1.0)
+        self.mu_bn.weight.fill_(0.5)
         self.logvar_bn.weight.fill_(0.3)
 
     def forward(self, input):
@@ -133,10 +133,10 @@ class ResNetEncoderV2(GaussianEncoderBase):
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
         else:
             output = self.main(input)
-        mean_logit = self.mu_fc(output.view(output.size()[:2]))
-        mean = self.mu_bn(mean_logit)
+        mean = self.mu_fc(output.view(output.size()[:2]))
+        mean = self.mu_bn(mean)
         logvar_logit = self.logvar_fc(output.view(output.size()[:2]))
-        logvar = self.logvar_bn(logvar_logit)
+        logvar = logvar_logit
         #output = self.linear(output.view(output.size()[:2]))
         #return output.chunk(2, 1)
-        return mean, logvar, mean_logit, logvar_logit
+        return mean, logvar, 0,0

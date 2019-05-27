@@ -1,6 +1,7 @@
 import math
 import torch
 import torch.nn as nn
+import numpy as np
 from scipy import special as sp
 
 from ..utils import log_sum_exp
@@ -108,7 +109,7 @@ class vMF(torch.nn.Module):
         muscale = mu * w_var
         sampled_vec = orth_term + muscale
 
-        return sampled_vec.unsqueeze(0)
+        return sampled_vec
 
     def _sample_weight_batch(self, kappa, dim, batch_sz=1):
         result = torch.FloatTensor((batch_sz))
@@ -175,7 +176,7 @@ class VMFEncoderBase(nn.Module):
     """docstring for EncoderBase"""
     def __init__(self):
         super(VMFEncoderBase, self).__init__()
-        self.dist = vMF(1024, 32, kappa=80)
+        self.dist = vMF(1024, 32, kappa=20)
 
     def forward(self, x):
         """
@@ -198,12 +199,12 @@ class VMFEncoderBase(nn.Module):
         """
 
         # (batch_size, nz)
-        mu, logvar = self.forward(input)
+        mu, logvar,_,_ = self.forward(input)
 
         # (batch, nsamples, nz)
         #z = self.reparameterize(mu, logvar, nsamples)
         tup, kld, z = self.dist.build_bow_rep(mu, 1)
-
+        z = z.unsqueeze(1)
 
         return z, (mu, mu)
 
@@ -217,12 +218,12 @@ class VMFEncoderBase(nn.Module):
         """
 
         # (batch_size, nz)
-        mu, logvar, mu_logit, logvar_logit = self.forward(input)
+        mu, logvar,_,_ = self.forward(input)
 
         # (batch, nsamples, nz)
-        tup, kld, z = self.dist.build_bow_rep(mu, 1)
-
-        return z, kld, mu_logit.pow(2).sum(dim=1)
+        tup, kld, z = self.dist.build_bow_rep(mu, nsamples)
+        z=z.unsqueeze(1)
+        return z, kld, 0
 
     def reparameterize(self, mu, logvar, nsamples=1):
         """sample from posterior Gaussian family
@@ -255,7 +256,7 @@ class VMFEncoderBase(nn.Module):
 
         """
         # (batch_size, nz)
-        mu, logvar = self.forward(x)
+        mu, logvar,_,_ = self.forward(x)
         # std = logvar.mul(0.5).exp()
 
         # batch_size = mu.size(0)
@@ -286,7 +287,7 @@ class VMFEncoderBase(nn.Module):
         nz = z.size(2)
 
         if not param:
-            mu, logvar = self.forward(x)
+            mu, logvar,_,_ = self.forward(x)
         else:
             mu, logvar = param
 
@@ -312,7 +313,7 @@ class VMFEncoderBase(nn.Module):
         """
 
         # [x_batch, nz]
-        mu, logvar = self.forward(x)
+        mu, logvar,_,_ = self.forward(x)
 
         x_batch, nz = mu.size()
 

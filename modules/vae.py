@@ -99,7 +99,7 @@ class VAE(nn.Module):
         return -ll_iw
 
     def KL(self, x):
-        _, KL = self.encode(x, 1)
+        _, KL,_ = self.encode(x, 1)
 
         return KL
 

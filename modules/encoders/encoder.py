@@ -30,7 +30,7 @@ class GaussianEncoderBase(nn.Module):
         """
 
         # (batch_size, nz)
-        mu, logvar = self.forward(input)
+        mu, logvar,_,_ = self.forward(input)
 
         # (batch, nsamples, nz)
         z = self.reparameterize(mu, logvar, nsamples)
@@ -54,7 +54,7 @@ class GaussianEncoderBase(nn.Module):
 
         KL = 0.5 * (mu.pow(2) + logvar.exp() - logvar - 1).sum(dim=1)
 
-        return z, KL, mu_logit.pow(2).sum(dim=1)
+        return z, KL, 0
 
     def reparameterize(self, mu, logvar, nsamples=1):
         """sample from posterior Gaussian family
@@ -144,7 +144,7 @@ class GaussianEncoderBase(nn.Module):
         """
 
         # [x_batch, nz]
-        mu, logvar = self.forward(x)
+        mu, logvar,_,_ = self.forward(x)
 
         x_batch, nz = mu.size()
 

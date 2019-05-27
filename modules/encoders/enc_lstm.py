@@ -8,7 +8,7 @@ from .encoder import GaussianEncoderBase
 from .encoder_vmf import VMFEncoderBase
 from ..utils import log_sum_exp
 
-class LSTMEncoder(VMFEncoderBase):
+class LSTMEncoder(GaussianEncoderBase):
     """Gaussian LSTM Encoder with constant-length input"""
     def __init__(self, args, vocab_size, model_init, emb_init):
         super(LSTMEncoder, self).__init__()
@@ -47,11 +47,11 @@ class LSTMEncoder(VMFEncoderBase):
 
         # model_init(self.linear.weight)
         # emb_init(self.embed.weight)
-        #for param in self.parameters():
-        #    model_init(param)
-        #emb_init(self.embed.weight)
+        for param in self.parameters():
+            model_init(param)
+        emb_init(self.embed.weight)
         self.mu_bn.weight.fill_(1)
-        #self.logvar_bn.weight.fill_(0.5)
+        self.logvar_bn.weight.fill_(0.75)
 
 
     def forward(self, input):
@@ -69,12 +69,12 @@ class LSTMEncoder(VMFEncoderBase):
 
         _, (last_state, last_cell) = self.lstm(word_embed)
 
-        mean = self.mu_bn(self.mu_fc(last_state.squeeze(0)))
+        mean = self.mu_fc(last_state.squeeze(0))
         logvar = self.logvar_fc(last_state.squeeze(0))
 
         #mean, logvar = self.linear(last_state.squeeze(0)).chunk(2, -1)
 
-        return mean, logvar
+        return mean, logvar, 0, 0
 
     # def eval_inference_mode(self, x):
     #     """compute the mode points in the inference distribution

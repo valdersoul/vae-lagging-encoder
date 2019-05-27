@@ -103,7 +103,7 @@ def test(model, test_data_batch, mode, args, verbose=True):
         report_num_sents += batch_size
 
 
-        loss, loss_rc, loss_kl = model.loss(batch_data, 1.0, nsamples=args.nsamples)
+        loss, loss_rc, loss_kl, _ = model.loss(batch_data, 1.0, nsamples=args.nsamples)
 
         assert(not loss_rc.requires_grad)
 
@@ -171,7 +171,7 @@ def calc_au(model, test_data_batch, delta=0.01):
     """
     cnt = 0
     for batch_data in test_data_batch:
-        mean, _ = model.encode_stats(batch_data)
+        mean, _,_,_ = model.encode_stats(batch_data)
         if cnt == 0:
             means_sum = mean.sum(dim=0, keepdim=True)
         else:
@@ -183,7 +183,7 @@ def calc_au(model, test_data_batch, delta=0.01):
 
     cnt = 0
     for batch_data in test_data_batch:
-        mean, _ = model.encode_stats(batch_data)
+        mean, _,_,_ = model.encode_stats(batch_data)
         if cnt == 0:
             var_sum = ((mean - mean_mean) ** 2).sum(dim=0)
         else:
@@ -336,6 +336,9 @@ def main(args):
     test_data_batch = test_data.create_data_batch(batch_size=args.batch_size,
                                                   device=device,
                                                   batch_first=True)
+    print(len(train_data_batch))
+    print(len(val_data_batch))
+    print(len(test_data_batch))
     if args.train:
         for epoch in range(args.epochs):
             report_kl_loss = report_rec_loss = 0
@@ -373,7 +376,7 @@ def main(args):
                         
                     burn_num_words += (burn_sents_len - 1) * burn_batch_size
 
-                    loss, loss_rc, loss_kl = vae.loss(batch_data_enc, kl_weight, nsamples=args.nsamples)
+                    loss, loss_rc, loss_kl,_ = vae.loss(batch_data_enc, kl_weight, nsamples=args.nsamples)
 
                     burn_cur_loss += loss.sum().item()
                     loss = loss.mean(dim=-1)
